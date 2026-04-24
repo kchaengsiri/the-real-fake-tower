@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.0] - 2026-04-24
+
+### Added
+- **Packed Grid Generation**: Every cell is now filled with an enemy or buff at game start.
+- **Greedy Solvability Engine**: Replaced DFS with a greedy reachability search that accounts for backtracking through empty cells.
+- **Visual Overhaul**:
+  - Removed green/red win/loss borders to encourage player strategic thinking.
+  - Significantly increased enemy and buff level font sizes and readability.
+  - Added subtle "floor tile" visuals for visited and cleared cells.
+- **UI Polish**:
+  - Refined entity tiles with inner shadows and better color contrast.
+  - Simplified grid legend to focus only on buffs.
+  - Improved boss and player highlights.
+
 ## [0.2.0] - 2026-04-24
 
 ### Added

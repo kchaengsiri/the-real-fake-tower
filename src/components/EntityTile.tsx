@@ -11,10 +11,10 @@ interface EntityTileProps {
 }
 
 const RANK_COLORS: Record<string, string> = {
-  o: "bg-green-500",
-  h: "bg-yellow-500",
-  c: "bg-orange-500",
-  b: "bg-purple-600",
+  o: "bg-emerald-600", // Minion - Rich Green
+  h: "bg-amber-500",   // Elite - Vibrant Gold/Amber
+  c: "bg-rose-600",    // Captain - Strong Red/Rose
+  b: "bg-indigo-700",  // Boss - Deep Indigo/Purple
 };
 
 const RANK_LABELS: Record<string, string> = {
@@ -38,42 +38,39 @@ export default function EntityTile({
     <motion.div
       className={`
         w-20 h-20 rounded-lg flex flex-col items-center justify-center
-        border-2 transition-all cursor-pointer
-        ${isPlayerPosition ? "bg-blue-100" : "bg-white"}
-        ${isBoss ? "boss-entity" : ""}
-        ${isBuff ? "bg-cyan-400" : ""}
+        border-2 transition-all cursor-pointer relative overflow-hidden
+        ${isPlayerPosition ? "bg-blue-200 ring-2 ring-blue-500 ring-offset-2 z-10 border-blue-600" : "bg-white"}
+        ${isBoss ? "boss-entity ring-4 ring-indigo-600 ring-offset-2 z-10 border-indigo-900" : ""}
+        ${isBuff ? "bg-sky-500 shadow-inner border-sky-700" : ""}
         ${
           !isPlayerPosition && entity !== null && entity?.type === "enemy"
-            ? (RANK_COLORS[entity.rank] ?? "")
+            ? `${RANK_COLORS[entity.rank] ?? ""} border-black/20`
             : ""
         }
-        ${!isPlayerPosition && isDefeatable ? "defeatable" : ""}
-        ${
-          !isPlayerPosition && !isDefeatable && entity?.type === "enemy"
-            ? "not-defeatable"
-            : ""
-        }
+        ${entity === null && !isPlayerPosition ? "bg-slate-300 shadow-inner opacity-40 border-slate-400" : ""}
       `}
       onClick={onClick}
-      whileHover={{ scale: 1.05 }}
+      whileHover={{ scale: 1.05, zIndex: 20 }}
       whileTap={{ scale: 0.95 }}
     >
       {entity?.type === "enemy" && (
-        <>
-          <span className="text-white font-bold text-lg">{entity.level}</span>
-          <span className="text-white text-xs">
+        <div className="flex flex-col items-center justify-center drop-shadow-[0_2px_2px_rgba(0,0,0,0.5)]">
+          <span className="text-white font-black text-2xl leading-none">{entity.level}</span>
+          <span className="text-white text-[10px] font-bold uppercase tracking-tighter mt-1 opacity-95">
             {RANK_LABELS[entity.rank] ?? ""}
           </span>
-        </>
+        </div>
       )}
       {isBuff && (
-        <>
-          <span className="text-white font-bold text-2xl">?</span>
-          <span className="text-white text-xs">x{entity.level}</span>
-        </>
+        <div className="flex flex-col items-center justify-center drop-shadow-[0_2px_2px_rgba(0,0,0,0.5)]">
+          <span className="text-white font-black text-3xl leading-none">?</span>
+          <span className="text-white text-sm font-bold mt-1">x{entity.level}</span>
+        </div>
       )}
       {entity === null && !isPlayerPosition && (
-        <span className="text-gray-300 text-2xl">.</span>
+        <div className="w-full h-full flex items-center justify-center">
+          <div className="w-4 h-4 border border-slate-300 transform rotate-45 opacity-30" />
+        </div>
       )}
     </motion.div>
   );

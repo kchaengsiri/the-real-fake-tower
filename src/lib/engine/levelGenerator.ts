@@ -2,13 +2,11 @@ import type {
   Cell,
   EnemyEntity,
   EntityRank,
-  EntityType,
-  GameEntity,
   Grid,
   Position,
 } from "./entityTypes";
 import { createCellId, createEntityId, getEntityRank } from "./entityTypes";
-import { getCell, isSolvable } from "./gridEngine";
+import { findBossPosition, getCell, isSolvable } from "./gridEngine";
 
 export type Difficulty = "easy" | "medium" | "hard";
 
@@ -32,20 +30,14 @@ const DIFFICULTY_PRESETS: Record<string, LevelDifficulty> = {
   hard: { minLevel: 10, maxLevel: 200, enemyCount: 10, buffCount: 4 },
 };
 
+const MAX_GENERATION_ATTEMPTS = 20;
+
 function seededRandom(seed: number): () => number {
   let state = seed;
   return () => {
     state = (state * 1103515245 + 12345) & 0x7fffffff;
     return state / 0x7fffffff;
   };
-}
-
-function generateEnemyLevel(
-  rng: () => number,
-  min: number,
-  max: number,
-): number {
-  return Math.floor(rng() * (max - min + 1)) + min;
 }
 
 function getAvailablePositions(grid: Grid, occupied: Set<string>): Position[] {
@@ -61,55 +53,88 @@ function getAvailablePositions(grid: Grid, occupied: Set<string>): Position[] {
   return positions;
 }
 
+function getDistanceToPlayer(pos: Position, playerStart: Position): number {
+  return Math.abs(pos.x - playerStart.x) + Math.abs(pos.y - playerStart.y);
+}
+
+function getDistanceToBoss(pos: Position, bossPos: Position): number {
+  return Math.abs(pos.x - bossPos.x) + Math.abs(pos.y - bossPos.y);
+}
+
+function getAdjacentPositions(pos: Position): Position[] {
+  return [
+    { x: pos.x, y: pos.y - 1 },
+    { x: pos.x, y: pos.y + 1 },
+    { x: pos.x - 1, y: pos.y },
+    { x: pos.x + 1, y: pos.y },
+  ];
+}
+
+function isValidPosition(grid: Grid, pos: Position): boolean {
+  return pos.x >= 0 && pos.x < grid.width && pos.y >= 0 && pos.y < grid.height;
+}
+
 function placeEntity(
   grid: Grid,
   occupied: Set<string>,
-  rng: () => number,
-  type: EntityType,
+  type: "enemy" | "buff",
   rank: EntityRank,
   level: number,
-): Position | null {
-  const available = getAvailablePositions(grid, occupied);
-  if (available.length === 0) return null;
-
-  const pos = available[Math.floor(rng() * available.length)];
-  const entity: GameEntity = {
+  pos: Position,
+): void {
+  grid.cells[pos.y][pos.x].entity = {
     id: createEntityId(type, pos.x, pos.y),
     type: type,
     rank,
     level,
-  } as GameEntity;
-  grid.cells[pos.y][pos.x].entity = entity;
-
+  } as never;
   occupied.add(`${pos.x},${pos.y}`);
-  return pos;
 }
 
-function placeEnemy(
+/**
+ * Build a "golden path" from player start towards the boss using BFS.
+ * Returns an ordered list of positions the player can walk through.
+ */
+function buildGoldenPath(
   grid: Grid,
+  playerStart: Position,
+  bossPos: Position,
   occupied: Set<string>,
-  maxLevel: number,
-  minLevel: number,
-  rng: () => number,
-): EnemyEntity | null {
-  const level = generateEnemyLevel(rng, minLevel, maxLevel);
-  const rank = getEntityRank(level);
+  pathLength: number,
+): Position[] {
+  // BFS to find positions stepping from playerStart towards bossPos
+  const path: Position[] = [];
+  const visited = new Set<string>();
+  visited.add(`${playerStart.x},${playerStart.y}`);
 
-  const pos = placeEntity(grid, occupied, rng, "enemy", rank, level);
-  if (!pos) return null;
+  let current = playerStart;
 
-  const cell = getCell(grid, pos);
-  return cell?.entity as EnemyEntity;
-}
+  for (let step = 0; step < pathLength; step++) {
+    const adjacent = getAdjacentPositions(current).filter((p) => {
+      const key = `${p.x},${p.y}`;
+      return (
+        isValidPosition(grid, p) &&
+        !visited.has(key) &&
+        !occupied.has(key) &&
+        // Don't step onto boss position (it's already placed)
+        !(p.x === bossPos.x && p.y === bossPos.y)
+      );
+    });
 
-function placeBuff(
-  grid: Grid,
-  occupied: Set<string>,
-  rng: () => number,
-): Position | null {
-  const multipliers = [2, 3];
-  const multiplier = multipliers[Math.floor(rng() * multipliers.length)];
-  return placeEntity(grid, occupied, rng, "buff", "o", multiplier);
+    if (adjacent.length === 0) break;
+
+    // Prefer cells that move closer to the boss
+    adjacent.sort(
+      (a, b) => getDistanceToBoss(a, bossPos) - getDistanceToBoss(b, bossPos),
+    );
+
+    const next = adjacent[0];
+    path.push(next);
+    visited.add(`${next.x},${next.y}`);
+    current = next;
+  }
+
+  return path;
 }
 
 export function generateSolvableLevel(
@@ -135,79 +160,96 @@ export function generateSolvableLevel(
   const grid: Grid = { cells, width, height };
   const occupied = new Set<string>();
 
+  // Player starts bottom-left
   const playerStart: Position = { x: 0, y: height - 1 };
   occupied.add(`${playerStart.x},${playerStart.y}`);
 
+  // Boss at top-center
   const bossY = 0;
   const bossX = Math.floor(width / 2);
-  const bossLevel = difficulty.maxLevel + 50;
-  grid.cells[bossY][bossX].entity = {
-    id: createEntityId("enemy", bossX, bossY),
-    type: "enemy",
-    rank: "b",
-    level: bossLevel,
-  };
-  occupied.add(`${bossX},${bossY}`);
+  const bossPos: Position = { x: bossX, y: bossY };
 
-  const totalEnemies = difficulty.enemyCount;
-  const placedEnemies: EnemyEntity[] = [];
+  // --- Phase 1: Build a golden path of beatable enemies ---
+  const goldenPathLength = Math.min(
+    Math.floor(difficulty.enemyCount * 0.6),
+    Math.max(3, Math.floor((width + height) / 2)),
+  );
 
-  for (
-    let i = 0;
-    i < totalEnemies * 5 && placedEnemies.length < totalEnemies;
-    i++
-  ) {
-    const enemy = placeEnemy(
-      grid,
-      occupied,
-      difficulty.maxLevel,
-      difficulty.minLevel,
-      rng,
-    );
-    if (enemy) {
-      placedEnemies.push(enemy);
-    }
+  const goldenPath = buildGoldenPath(
+    grid,
+    playerStart,
+    bossPos,
+    occupied,
+    goldenPathLength,
+  );
+
+  let currentPower = playerStartLevel;
+  for (const pos of goldenPath) {
+    const maxLvl = Math.max(1, currentPower);
+    const minLvl = 1;
+    const enemyLevel = Math.floor(rng() * (maxLvl - minLvl + 1)) + minLvl;
+
+    const rank = getEntityRank(enemyLevel);
+    placeEntity(grid, occupied, "enemy", rank, enemyLevel, pos);
+    currentPower += enemyLevel;
   }
 
-  for (let i = 0; i < difficulty.buffCount; i++) {
-    placeBuff(grid, occupied, rng);
+  // --- Phase 2: Fill ALL remaining cells ---
+  const allAvailable = getAvailablePositions(grid, occupied).filter(
+    (p) => !(p.x === bossPos.x && p.y === bossPos.y),
+  );
+
+  // Shuffle available positions to randomize placement of buffs vs enemies
+  for (let i = allAvailable.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [allAvailable[i], allAvailable[j]] = [allAvailable[j], allAvailable[i]];
   }
 
-  let attempts = 0;
-  while (attempts < 50) {
-    if (isSolvable(grid, playerStartLevel, playerStart)) {
-      return grid;
-    }
+  // Calculate how many buffs to place based on difficulty
+  const buffCount = Math.min(difficulty.buffCount, allAvailable.length);
+  
+  for (let i = 0; i < allAvailable.length; i++) {
+    const pos = allAvailable[i];
+    
+    if (i < buffCount) {
+      // Place a buff
+      const multipliers = [2, 3];
+      const multiplier = multipliers[Math.floor(rng() * multipliers.length)];
+      placeEntity(grid, occupied, "buff", "o", multiplier, pos);
+      // We don't update currentPower here for simplicity in golden path, 
+      // but buffs make it easier to win.
+    } else {
+      // Place an enemy
+      const distToBoss = getDistanceToBoss(pos, bossPos);
+      const maxDist = Math.abs(bossX - playerStart.x) + Math.abs(bossY - playerStart.y);
+      const progressToBoss = 1 - distToBoss / Math.max(maxDist, 1);
 
-    occupied.clear();
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        const cell = grid.cells[y][x];
-        if (cell.entity?.type === "enemy" && cell.entity.rank === "b") {
-          occupied.add(`${x},${y}`);
-        } else {
-          grid.cells[y][x].entity = null;
-        }
+      const isTrap = rng() < 0.2; // 20% chance of being a "trap" (harder enemy)
+      let enemyLevel: number;
+
+      if (isTrap) {
+        const minTrapLevel = Math.floor(currentPower * 0.7);
+        const maxTrapLevel = Math.max(minTrapLevel + 10, Math.floor(difficulty.maxLevel * progressToBoss * 1.5));
+        enemyLevel = Math.floor(rng() * (maxTrapLevel - minTrapLevel + 1)) + minTrapLevel;
+      } else {
+        const maxLvl = Math.max(1, Math.floor(currentPower * (0.5 + progressToBoss)));
+        enemyLevel = Math.floor(rng() * maxLvl) + 1;
+        // Non-trap enemies generally help power up
+        currentPower += enemyLevel;
       }
+
+      const rank = getEntityRank(enemyLevel);
+      placeEntity(grid, occupied, "enemy", rank, enemyLevel, pos);
     }
-    occupied.add(`${playerStart.x},${playerStart.y}`);
-
-    for (const enemy of placedEnemies) {
-      const pos = getAvailablePositions(grid, occupied);
-      if (pos.length === 0) break;
-
-      const newPos = pos[Math.floor(rng() * pos.length)];
-      grid.cells[newPos.y][newPos.x].entity = {
-        id: createEntityId("enemy", newPos.x, newPos.y),
-        type: "enemy",
-        rank: enemy.rank,
-        level: enemy.level,
-      };
-      occupied.add(`${newPos.x},${newPos.y}`);
-    }
-
-    attempts++;
   }
+
+  // --- Phase 3: Place the boss ---
+  // Boss level is balanced against the potential power gain
+  const bossLevel = Math.max(
+    difficulty.maxLevel,
+    Math.floor(currentPower * 0.8),
+  );
+  placeEntity(grid, occupied, "enemy", "b", bossLevel, bossPos);
 
   return grid;
 }
@@ -228,12 +270,32 @@ export function generateLevel(
     diff = DIFFICULTY_PRESETS.medium;
   }
 
-  const defaults: GeneratorOptions = {
+  const genOptions: GeneratorOptions = {
     width: options.width ?? 4,
     height: options.height ?? 5,
     difficulty: diff,
     seed: options.seed,
   };
 
-  return generateSolvableLevel(defaults);
+  // Retry loop: generate until we get a solvable level
+  const playerStart: Position = {
+    x: 0,
+    y: (options.height ?? 5) - 1,
+  };
+
+  for (let attempt = 0; attempt < MAX_GENERATION_ATTEMPTS; attempt++) {
+    const attemptSeed =
+      genOptions.seed != null
+        ? genOptions.seed + attempt
+        : Date.now() + attempt;
+
+    const grid = generateSolvableLevel({ ...genOptions, seed: attemptSeed }, 1);
+
+    if (isSolvable(grid, 1, playerStart)) {
+      return grid;
+    }
+  }
+
+  // Fallback: return the last attempt (golden path should make it solvable)
+  return generateSolvableLevel(genOptions);
 }

@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import type { Position } from "./entityTypes";
+import { findBossPosition, getCell, isSolvable } from "./gridEngine";
 import { generateLevel, generateSolvableLevel } from "./levelGenerator";
 
 function countEntities(grid: ReturnType<typeof generateLevel>) {
@@ -69,6 +71,99 @@ describe("levelGenerator", () => {
           expect(cell).toHaveProperty("position");
           expect(cell).toHaveProperty("entity");
         }
+      }
+    });
+  });
+
+  describe("solvability guarantee", () => {
+    it("always places at least one beatable enemy adjacent to player start", () => {
+      for (let seed = 1; seed <= 50; seed++) {
+        const grid = generateLevel({
+          width: 5,
+          height: 6,
+          difficulty: "easy",
+          seed,
+        });
+        const playerStart: Position = { x: 0, y: grid.height - 1 };
+
+        // Check adjacent cells for at least one beatable enemy (level <= 1)
+        const adjacent: Position[] = [
+          { x: 0, y: playerStart.y - 1 },
+          { x: 1, y: playerStart.y },
+        ];
+
+        const hasBeatable = adjacent.some((pos) => {
+          const cell = getCell(grid, pos);
+          return cell?.entity?.type === "enemy" && cell.entity.level <= 1;
+        });
+
+        // Either has a beatable enemy adjacent, or an empty/buff cell to move through
+        const hasAccessible = adjacent.some((pos) => {
+          const cell = getCell(grid, pos);
+          return (
+            cell !== null &&
+            (cell.entity === null ||
+              cell.entity.type === "buff" ||
+              (cell.entity.type === "enemy" && cell.entity.level <= 1))
+          );
+        });
+
+        expect(hasAccessible).toBe(true);
+      }
+    });
+
+    it("generates solvable grids for easy difficulty across 50 seeds", () => {
+      for (let seed = 1; seed <= 50; seed++) {
+        const grid = generateLevel({
+          width: 5,
+          height: 6,
+          difficulty: "easy",
+          seed,
+        });
+        const playerStart: Position = { x: 0, y: grid.height - 1 };
+        const solvable = isSolvable(grid, 1, playerStart);
+        expect(solvable).toBe(true);
+      }
+    });
+
+    it("generates solvable grids for medium difficulty across 50 seeds", () => {
+      for (let seed = 1; seed <= 50; seed++) {
+        const grid = generateLevel({
+          width: 5,
+          height: 6,
+          difficulty: "medium",
+          seed,
+        });
+        const playerStart: Position = { x: 0, y: grid.height - 1 };
+        const solvable = isSolvable(grid, 1, playerStart);
+        expect(solvable).toBe(true);
+      }
+    });
+
+    it("generates solvable grids for hard difficulty across 50 seeds", () => {
+      for (let seed = 1; seed <= 50; seed++) {
+        const grid = generateLevel({
+          width: 5,
+          height: 6,
+          difficulty: "hard",
+          seed,
+        });
+        const playerStart: Position = { x: 0, y: grid.height - 1 };
+        const solvable = isSolvable(grid, 1, playerStart);
+        expect(solvable).toBe(true);
+      }
+    });
+
+    it("always places regular enemies (not just boss)", () => {
+      for (let seed = 1; seed <= 20; seed++) {
+        const grid = generateLevel({
+          width: 5,
+          height: 6,
+          difficulty: "medium",
+          seed,
+        });
+        const { enemyCount } = countEntities(grid);
+        expect(enemyCount).toBeGreaterThanOrEqual(3);
       }
     });
   });

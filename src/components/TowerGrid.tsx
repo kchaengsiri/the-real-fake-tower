@@ -30,7 +30,7 @@ export default function TowerGrid() {
 
   return (
     <div className="flex flex-col items-center gap-4">
-      <div className="bg-gray-100 p-4 rounded-xl">
+      <div className="bg-slate-200 p-6 rounded-2xl shadow-2xl border border-slate-300">
         <div className="flex items-center gap-4 mb-4">
           <span className="text-lg font-semibold">
             Your Level: {player.level}
@@ -80,9 +80,7 @@ export default function TowerGrid() {
       </AnimatePresence>
 
       <div className="mt-4 text-center text-gray-600">
-        <p>Green border = You can defeat</p>
-        <p>Red border = Too powerful!</p>
-        <p className="text-cyan-500 mt-2">Cyan = Buff (chest)</p>
+        <p className="text-sky-700 font-semibold mt-2">Sky Blue = Buff (multiplier)</p>
       </div>
     </div>
   );
