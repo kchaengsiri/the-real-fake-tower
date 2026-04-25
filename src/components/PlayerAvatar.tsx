@@ -16,7 +16,9 @@ export default function PlayerAvatar() {
       }}
       transition={{ type: "spring", stiffness: 300, damping: 30 }}
     >
-      <span className="text-white font-black text-xl drop-shadow-md">LV{player.level}</span>
+      <span className="text-white font-black text-xl drop-shadow-md">
+        LV{player.level}
+      </span>
     </motion.div>
   );
 }

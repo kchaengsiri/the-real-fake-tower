@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.0] - 2026-04-25
+
+### Added
+- **AI Auto-Solver**:
+  - `solver.ts` engine that finds the optimal path to the boss using a greedy search.
+  - "AI Auto-Solve" button with step-by-step movement animations.
+- **Personal Leaderboard & Stats**:
+  - `statsStore.ts` for persistent tracking of wins, losses, and run history.
+  - Best Time and Highest Level tracking per difficulty.
+  - Interactive "Recent Runs" history panel in the UI.
+- **Local Profile System**:
+  - Customizable username stored in localStorage.
+  - Welcome message and profile editor in the main menu.
+- **Infrastructure**:
+  - Biome configuration for ignored paths.
+  - Unit tests for the AI Solver.
+
+### Fixed
+- Fixed various accessibility (a11y) issues in the UI.
+- **11:12** <feat> Implemented Phase 3: AI Solver, Stats, and Local Profiles.
+- **11:19** <feat> Added Arrow Keys support for movement.
+- **11:19** <fix> Resolved bug in stats recording where wins were not being logged.
+- **11:19** <fix> Improved UI hydration for persistent stats to avoid SSR mismatches.
+- **12:00** <feat> Added a one-time tutorial popup for arrow key controls.
+
 ## [0.3.0] - 2026-04-24
 
 ### Added

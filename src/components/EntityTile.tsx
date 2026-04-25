@@ -12,9 +12,9 @@ interface EntityTileProps {
 
 const RANK_COLORS: Record<string, string> = {
   o: "bg-emerald-600", // Minion - Rich Green
-  h: "bg-amber-500",   // Elite - Vibrant Gold/Amber
-  c: "bg-rose-600",    // Captain - Strong Red/Rose
-  b: "bg-indigo-700",  // Boss - Deep Indigo/Purple
+  h: "bg-amber-500", // Elite - Vibrant Gold/Amber
+  c: "bg-rose-600", // Captain - Strong Red/Rose
+  b: "bg-indigo-700", // Boss - Deep Indigo/Purple
 };
 
 const RANK_LABELS: Record<string, string> = {
@@ -55,7 +55,9 @@ export default function EntityTile({
     >
       {entity?.type === "enemy" && (
         <div className="flex flex-col items-center justify-center drop-shadow-[0_2px_2px_rgba(0,0,0,0.5)]">
-          <span className="text-white font-black text-2xl leading-none">{entity.level}</span>
+          <span className="text-white font-black text-2xl leading-none">
+            {entity.level}
+          </span>
           <span className="text-white text-[10px] font-bold uppercase tracking-tighter mt-1 opacity-95">
             {RANK_LABELS[entity.rank] ?? ""}
           </span>
@@ -64,7 +66,9 @@ export default function EntityTile({
       {isBuff && (
         <div className="flex flex-col items-center justify-center drop-shadow-[0_2px_2px_rgba(0,0,0,0.5)]">
           <span className="text-white font-black text-3xl leading-none">?</span>
-          <span className="text-white text-sm font-bold mt-1">x{entity.level}</span>
+          <span className="text-white text-sm font-bold mt-1">
+            x{entity.level}
+          </span>
         </div>
       )}
       {entity === null && !isPlayerPosition && (

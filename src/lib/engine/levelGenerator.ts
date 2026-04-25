@@ -207,21 +207,22 @@ export function generateSolvableLevel(
 
   // Calculate how many buffs to place based on difficulty
   const buffCount = Math.min(difficulty.buffCount, allAvailable.length);
-  
+
   for (let i = 0; i < allAvailable.length; i++) {
     const pos = allAvailable[i];
-    
+
     if (i < buffCount) {
       // Place a buff
       const multipliers = [2, 3];
       const multiplier = multipliers[Math.floor(rng() * multipliers.length)];
       placeEntity(grid, occupied, "buff", "o", multiplier, pos);
-      // We don't update currentPower here for simplicity in golden path, 
+      // We don't update currentPower here for simplicity in golden path,
       // but buffs make it easier to win.
     } else {
       // Place an enemy
       const distToBoss = getDistanceToBoss(pos, bossPos);
-      const maxDist = Math.abs(bossX - playerStart.x) + Math.abs(bossY - playerStart.y);
+      const maxDist =
+        Math.abs(bossX - playerStart.x) + Math.abs(bossY - playerStart.y);
       const progressToBoss = 1 - distToBoss / Math.max(maxDist, 1);
 
       const isTrap = rng() < 0.2; // 20% chance of being a "trap" (harder enemy)
@@ -229,10 +230,17 @@ export function generateSolvableLevel(
 
       if (isTrap) {
         const minTrapLevel = Math.floor(currentPower * 0.7);
-        const maxTrapLevel = Math.max(minTrapLevel + 10, Math.floor(difficulty.maxLevel * progressToBoss * 1.5));
-        enemyLevel = Math.floor(rng() * (maxTrapLevel - minTrapLevel + 1)) + minTrapLevel;
+        const maxTrapLevel = Math.max(
+          minTrapLevel + 10,
+          Math.floor(difficulty.maxLevel * progressToBoss * 1.5),
+        );
+        enemyLevel =
+          Math.floor(rng() * (maxTrapLevel - minTrapLevel + 1)) + minTrapLevel;
       } else {
-        const maxLvl = Math.max(1, Math.floor(currentPower * (0.5 + progressToBoss)));
+        const maxLvl = Math.max(
+          1,
+          Math.floor(currentPower * (0.5 + progressToBoss)),
+        );
         enemyLevel = Math.floor(rng() * maxLvl) + 1;
         // Non-trap enemies generally help power up
         currentPower += enemyLevel;

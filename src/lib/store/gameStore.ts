@@ -5,6 +5,7 @@ import { applyBuffEffect } from "../engine/entityTypes";
 import { findBossPosition, getCell } from "../engine/gridEngine";
 import { type Difficulty, generateLevel } from "../engine/levelGenerator";
 import { validateMove } from "../engine/movementEngine";
+import { useStatsStore } from "./statsStore";
 
 export type { Difficulty } from "../engine/levelGenerator";
 
@@ -16,6 +17,9 @@ interface GameStore extends GameState {
   resetGame: () => void;
   getMovablePositions: () => { position: Position; defeatable: boolean }[];
   getFloatingText: () => string | null;
+  autoSolve: () => void;
+  isSolving: boolean;
+  startTime: number | null;
 }
 
 function createInitialGrid(
@@ -39,6 +43,8 @@ function createInitialState(difficulty: Difficulty): GameState {
     grid,
     status: "idle",
     floatingText: null,
+    isSolving: false,
+    startTime: null,
   };
 }
 
@@ -48,7 +54,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   startGame: () => {
     const state = get();
-    set({ status: "playing", grid: createInitialGrid(state.difficulty) });
+    set({
+      status: "playing",
+      grid: createInitialGrid(state.difficulty),
+      startTime: Date.now(),
+    });
   },
 
   startGameWithDifficulty: (difficulty: Difficulty) => {
@@ -56,6 +66,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       difficulty,
       ...createInitialState(difficulty),
       status: "playing",
+      startTime: Date.now(),
     });
   },
 
@@ -69,6 +80,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     if (validation.willLose) {
       set({ status: "gameover" });
+      useStatsStore.getState().recordLoss(state.difficulty, state.player.level);
       return;
     }
 
@@ -117,11 +129,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const bossPos = findBossPosition(newGrid);
     if (!bossPos) {
       set({ status: "won" });
+      const duration = (Date.now() - (state.startTime || Date.now())) / 1000;
+      useStatsStore.getState().recordWin(state.difficulty, duration, newLevel);
       return;
-    }
-
-    if (targetPosition.x === bossPos.x && targetPosition.y === bossPos.y) {
-      set({ status: "won" });
     }
   },
 
@@ -157,5 +167,29 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   getFloatingText: () => {
     return get().floatingText;
+  },
+
+  autoSolve: async () => {
+    const { grid, player, movePlayer, status, isSolving } = get();
+    if (status !== "playing" || isSolving) return;
+
+    const { solveGame } = await import("../engine/solver");
+    const path = solveGame(grid, player);
+
+    if (!path) {
+      console.log("No solution found");
+      return;
+    }
+
+    set({ isSolving: true });
+
+    for (const pos of path) {
+      if (get().status !== "playing") break;
+      movePlayer(pos);
+      // Wait for animation to complete
+      await new Promise((resolve) => setTimeout(resolve, 300));
+    }
+
+    set({ isSolving: false });
   },
 }));

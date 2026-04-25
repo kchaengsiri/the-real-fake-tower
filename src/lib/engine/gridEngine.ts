@@ -110,12 +110,13 @@ export function isSolvable(
     visited.add(`${playerStartPosition.x},${playerStartPosition.y}`);
 
     while (queue.length > 0) {
-      const curr = queue.shift()!;
-      
+      const curr = queue.shift();
+      if (!curr) continue;
+
       for (const adj of getAdjacentPositions(curr)) {
         const key = `${adj.x},${adj.y}`;
         if (!isValidPosition(adj, grid) || visited.has(key)) continue;
-        
+
         visited.add(key);
         const cell = getCell(grid, adj);
         if (!cell) continue;
@@ -154,7 +155,7 @@ export function isSolvable(
 
     const target = beatable[0];
     const targetKey = `${target.pos.x},${target.pos.y}`;
-    
+
     if (target.entity.type === "enemy") {
       currentLevel += target.entity.level;
     } else {
@@ -166,7 +167,7 @@ export function isSolvable(
         currentLevel += val;
       }
     }
-    
+
     defeatedPositions.add(targetKey);
   }
 
