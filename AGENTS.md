@@ -21,20 +21,25 @@ You are working on **The Real Fake Tower**, a mathematical puzzle game that brin
 2.  **Mathematical Integrity:** Every move must strictly follow the rule: `Win if Player_LV >= Enemy_LV`. If a player moves to a cell they cannot defeat, trigger the `GameOver` state immediately.
 3.  **Framer Motion for UX:** All character movements between grid cells must be animated using `layoutId` or `animate` props to mimic the "sliding" effect seen in ads.
 4.  **Strict Typing:** Ensure 100% type safety. Use discriminating unions for `Entity` types (e.g., `Player | Enemy | Boss | Buff`).
-5.  **Terminal Commands:** Always use flags to bypass interactive prompts (e.g., `bunx @biomejs/biome check --write .`).
+5.  **Terminal Commands:** Always use flags to bypass interactive prompts (e.g., `bun run biome check:write`).
 
 ## Coding Agent Workflow (Strict Logic-First)
 You must follow this workflow for every feature or mechanic update:
 1.  **Logic Update:** If changing game rules, update the core engine functions first.
 2.  **Unit Tests:** Run Vitest (`bun test`) to ensure the math and win/loss conditions are still valid.
 3.  **UI Implementation:** Update the React components to reflect logic changes.
-4.  **Format & Lint:** Run Biome (`bunx @biomejs/biome check --write ./src`).
-5.  **Verification:** Ensure no Biome errors and all tests pass before declaring a task complete.
-6.  **Update Changelog:** Log the change in `docs/CHANGELOG.md` using the format:
+4.  **Format & Lint:** Run Biome (`bun run biome check:write`).
+5.  **Production Build:** Run `bun run build`.
+    * If the build fails (e.g., Type errors, Lint errors, or SSR issues), you **must** fix the issues and return to **Step 4** (Format & Lint) to ensure the fixes haven't broken the style guide.
+6.  **Verification:** Ensure no Biome errors, all tests pass, and the production build is successful before declaring a task complete.
+7.  **Update Changelog:** Log the change in `docs/CHANGELOG.md` using the format:
     `- **HH:MM** <feat|fix|math|style|docs> <Brief Description>`
-7.  **Git Workflow:** Work on feature branches (`feat/logic-engine`, `feat/grid-ui`). Use Conventional Commits.
+8.  **Git Workflow:**
+    * **STRICT PROHIBITION:** You are strictly forbidden from working on or committing directly to the `main` branch.
+    * **Process:** Check the current branch. If you are on `main`, you **must** create and switch to a new feature branch (e.g., `git checkout -b feat/your-feature-name`).
+    * **Commits:** Use Conventional Commits.
+
 
 ## Specific Logic Constraints
 * **Additive Power:** When the player wins, the new level is `Current_LV + Enemy_LV`.
 * **Grid Validation:** Before rendering a level, verify it is "Solvable" by checking if a path to the Boss exists where the player can accumulate enough levels to win.
-
