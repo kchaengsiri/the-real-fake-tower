@@ -1,4 +1,4 @@
-import type { Grid, Player, Position } from "./entityTypes";
+import type { Grid, PlayerState, Position } from "./entityTypes";
 import {
   findBossPosition,
   findPathToBoss,
@@ -11,7 +11,7 @@ import {
  * AI Solver for The Real Fake Tower.
  * Uses a greedy approach to find a sequence of moves to reach and defeat the boss.
  */
-export function solveGame(grid: Grid, player: Player): Position[] | null {
+export function solveGame(grid: Grid, player: PlayerState): Position[] | null {
   const bossPosition = findBossPosition(grid);
   if (!bossPosition) return null;
 

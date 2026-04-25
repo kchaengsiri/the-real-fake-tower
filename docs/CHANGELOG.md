@@ -26,6 +26,7 @@ All notable changes to this project will be documented in this file.
 - **11:19** <fix> Resolved bug in stats recording where wins were not being logged.
 - **11:19** <fix> Improved UI hydration for persistent stats to avoid SSR mismatches.
 - **12:00** <feat> Added a one-time tutorial popup for arrow key controls.
+- **12:08** <fix> Fixed build errors related to missing 'Player' type and 'GameState' interface mismatches.
 
 ## [0.3.0] - 2026-04-24
 

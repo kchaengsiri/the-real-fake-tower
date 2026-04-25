@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Grid, Player } from "./entityTypes";
+import type { Grid, PlayerState } from "./entityTypes";
 import { solveGame } from "./solver";
 
 describe("solveGame", () => {
@@ -35,7 +35,7 @@ describe("solveGame", () => {
       ],
     };
 
-    const player: Player = {
+    const player: PlayerState = {
       level: 5,
       position: { x: 2, y: 2 },
     };
@@ -74,7 +74,7 @@ describe("solveGame", () => {
       ],
     };
 
-    const player: Player = {
+    const player: PlayerState = {
       level: 1,
       position: { x: 2, y: 2 },
     };

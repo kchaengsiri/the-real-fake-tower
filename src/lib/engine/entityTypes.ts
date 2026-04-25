@@ -68,6 +68,8 @@ export interface GameState {
   grid: Grid;
   status: GameStatus;
   floatingText: string | null;
+  isSolving: boolean;
+  startTime: number | null;
 }
 
 export const ENTITY_LEVEL_RANGES: Record<

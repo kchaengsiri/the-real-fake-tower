@@ -18,8 +18,6 @@ interface GameStore extends GameState {
   getMovablePositions: () => { position: Position; defeatable: boolean }[];
   getFloatingText: () => string | null;
   autoSolve: () => void;
-  isSolving: boolean;
-  startTime: number | null;
 }
 
 function createInitialGrid(
