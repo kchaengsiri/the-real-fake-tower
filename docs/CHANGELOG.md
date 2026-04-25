@@ -27,6 +27,9 @@ All notable changes to this project will be documented in this file.
 - **11:19** <fix> Improved UI hydration for persistent stats to avoid SSR mismatches.
 - **12:00** <feat> Added a one-time tutorial popup for arrow key controls.
 - **12:08** <fix> Fixed build errors related to missing 'Player' type and 'GameState' interface mismatches.
+- **12:50** <feat|style> Implemented "Game Juice": Screen shake, particle bursts, squash/stretch animations, and Boss/Enemy glows.
+- **13:00** <feat|style> Transitioned to 2D Pixel Art character system using a sprite mapping system and dynamic rendering.
+- **13:10** <feat|style> Replaced placeholder Dicebear avatars with custom-coded SVG pixel art sprites for all game entities (Hero, Slime, Skeleton, Knight, Demon).
 
 ## [0.3.0] - 2026-04-24
 

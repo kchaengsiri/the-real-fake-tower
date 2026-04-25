@@ -12,6 +12,7 @@ export interface Entity {
   type: EntityType;
   rank: EntityRank;
   level: number;
+  spriteId?: string;
 }
 
 export interface PlayerEntity extends Entity {
@@ -61,6 +62,7 @@ export interface Grid {
 export interface PlayerState {
   level: number;
   position: Position;
+  spriteId?: string;
 }
 
 export interface GameState {
@@ -70,6 +72,10 @@ export interface GameState {
   floatingText: string | null;
   isSolving: boolean;
   startTime: number | null;
+  vfx: {
+    shake: boolean;
+    lastCombatPosition: Position | null;
+  };
 }
 
 export const ENTITY_LEVEL_RANGES: Record<

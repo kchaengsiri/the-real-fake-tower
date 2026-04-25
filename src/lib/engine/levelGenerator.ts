@@ -82,11 +82,32 @@ function placeEntity(
   level: number,
   pos: Position,
 ): void {
+  let spriteId = "slime";
+  if (type === "buff") {
+    spriteId = "chest";
+  } else {
+    switch (rank) {
+      case "o":
+        spriteId = "slime";
+        break;
+      case "h":
+        spriteId = "skeleton";
+        break;
+      case "c":
+        spriteId = "knight";
+        break;
+      case "b":
+        spriteId = "demon";
+        break;
+    }
+  }
+
   grid.cells[pos.y][pos.x].entity = {
     id: createEntityId(type, pos.x, pos.y),
     type: type,
     rank,
     level,
+    spriteId,
   } as never;
   occupied.add(`${pos.x},${pos.y}`);
 }

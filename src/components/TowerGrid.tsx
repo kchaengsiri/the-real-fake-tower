@@ -10,6 +10,36 @@ import { useEffect } from "react";
 import EntityTile from "./EntityTile";
 import PlayerAvatar from "./PlayerAvatar";
 
+const CombatParticles = ({
+  position,
+}: { position: { x: number; y: number } }) => {
+  return (
+    <div
+      className="absolute pointer-events-none z-40"
+      style={{
+        left: position.x * 80 + 40,
+        top: position.y * 80 + 40,
+      }}
+    >
+      {[...Array(8)].map((_, i) => (
+        <motion.div
+          // biome-ignore lint/suspicious/noArrayIndexKey: simple particles
+          key={i}
+          initial={{ x: 0, y: 0, opacity: 1, scale: 1 }}
+          animate={{
+            x: (Math.random() - 0.5) * 100,
+            y: (Math.random() - 0.5) * 100,
+            opacity: 0,
+            scale: 0,
+          }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          className="absolute w-2 h-2 rounded-full bg-yellow-400"
+        />
+      ))}
+    </div>
+  );
+};
+
 export default function TowerGrid() {
   const {
     grid,
@@ -19,6 +49,7 @@ export default function TowerGrid() {
     floatingText,
     autoSolve,
     isSolving,
+    vfx,
   } = useGameStore();
   const { hasSeenControlsTutorial, setHasSeenControlsTutorial } =
     useStatsStore();
@@ -89,7 +120,13 @@ export default function TowerGrid() {
 
   return (
     <div className="flex flex-col items-center gap-4">
-      <div className="bg-slate-200 p-6 rounded-2xl shadow-2xl border border-slate-300">
+      <motion.div
+        animate={
+          vfx.shake ? { x: [-5, 5, -5, 5, 0], y: [-2, 2, -2, 2, 0] } : {}
+        }
+        transition={{ duration: 0.3 }}
+        className="bg-slate-200 p-6 rounded-2xl shadow-2xl border border-slate-300 relative"
+      >
         <div className="flex items-center gap-4 mb-4">
           <span className="text-lg font-semibold">
             Your Level: {player.level}
@@ -122,8 +159,14 @@ export default function TowerGrid() {
             }),
           )}
           <PlayerAvatar />
+
+          <AnimatePresence>
+            {vfx.lastCombatPosition && (
+              <CombatParticles position={vfx.lastCombatPosition} />
+            )}
+          </AnimatePresence>
         </div>
-      </div>
+      </motion.div>
 
       <AnimatePresence>
         {floatingText && (

@@ -18,6 +18,7 @@ interface GameStore extends GameState {
   getMovablePositions: () => { position: Position; defeatable: boolean }[];
   getFloatingText: () => string | null;
   autoSolve: () => void;
+  triggerVFX: (type: "shake" | "combat", position?: Position) => void;
 }
 
 function createInitialGrid(
@@ -37,12 +38,17 @@ function createInitialState(difficulty: Difficulty): GameState {
     player: {
       level: 1,
       position: { x: 0, y: grid.height - 1 },
+      spriteId: "hero",
     },
     grid,
     status: "idle",
     floatingText: null,
     isSolving: false,
     startTime: null,
+    vfx: {
+      shake: false,
+      lastCombatPosition: null,
+    },
   };
 }
 
@@ -83,16 +89,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
 
     const targetCell = getCell(state.grid, targetPosition);
+    const entityType = targetCell?.entity?.type;
     let newLevel = state.player.level;
     let floatingText: string | null = null;
 
-    if (targetCell?.entity?.type === "enemy") {
+    if (entityType === "enemy" && targetCell?.entity) {
       const enemy = targetCell.entity as EnemyEntity;
       newLevel = calculateNewLevel(state.player.level, enemy.level);
       floatingText = `+${enemy.level}`;
     }
 
-    if (targetCell?.entity?.type === "buff") {
+    if (entityType === "buff" && targetCell?.entity) {
       const buff = targetCell.entity;
       const result = applyBuffEffect(state.player.level, {
         type:
@@ -130,6 +137,39 @@ export const useGameStore = create<GameStore>((set, get) => ({
       const duration = (Date.now() - (state.startTime || Date.now())) / 1000;
       useStatsStore.getState().recordWin(state.difficulty, duration, newLevel);
       return;
+    }
+
+    if (entityType) {
+      get().triggerVFX(
+        entityType === "enemy" ? "shake" : "combat",
+        targetPosition,
+      );
+    }
+  },
+
+  triggerVFX: (type, position) => {
+    if (type === "shake") {
+      set((state) => ({
+        vfx: {
+          ...state.vfx,
+          shake: true,
+          lastCombatPosition: position ?? null,
+        },
+      }));
+      setTimeout(
+        () => set((state) => ({ vfx: { ...state.vfx, shake: false } })),
+        300,
+      );
+    } else {
+      set((state) => ({
+        vfx: { ...state.vfx, lastCombatPosition: position ?? null },
+      }));
+      // Reset position after a short delay so particles can finish
+      setTimeout(
+        () =>
+          set((state) => ({ vfx: { ...state.vfx, lastCombatPosition: null } })),
+        1000,
+      );
     }
   },
 
